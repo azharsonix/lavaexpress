@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [{ "source": "/seguimiento/:id", "destination": "/api/seguimiento?id=:id" }],
+  "redirects": [{ "source": "/", "destination": "https://lavaexpress-a35d3.web.app", "permanent": false }]
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pantalla de arranque: fondo azul de marca con el logo centrado -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/azul_marca" />
+    <!-- Se usa el PNG del primer plano del ícono: @mipmap/ic_launcher en API 26+
+         es un adaptive-icon (XML) y <bitmap> no puede mostrarlo. -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/ic_launcher_foreground" />
+    </item>
+</layer-list>

@@ -1,0 +1,7 @@
+Fotografías usadas en LavaExpress (Unsplash License: uso libre, también comercial, sin atribución obligatoria).
+
+ropa_doblada.jpg  Dan LeFebvre       https://unsplash.com/photos/APUvZYCjPJ0
+lavadora.jpg      Unsplash           https://unsplash.com/photos/EJhRYG0sUd4
+canasta.jpg       Annie Spratt       https://unsplash.com/photos/5TfCI4nj6B4
+
+Tipografía: Plus Jakarta Sans (SIL Open Font License) https://github.com/tokotype/PlusJakartaSans

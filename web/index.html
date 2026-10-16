@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="LavaExpress: lavandería con recolección y entrega a domicilio.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="LavaExpress">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>LavaExpress</title>
+  <link rel="manifest" href="manifest.json">
+  <!-- Conexiones anticipadas a Firebase para acelerar el arranque -->
+  <link rel="preconnect" href="https://firestore.googleapis.com">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
+  <link rel="preconnect" href="https://securetoken.googleapis.com">
+  <style>
+    html, body { margin: 0; height: 100%; background: #F1F5F9; }
+    #carga {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: #0F172A; transition: opacity .2s ease;
+    }
+    #carga .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; letter-spacing: -0.4px; }
+    #carga .marca b { color: #2563EB; font-weight: 800; }
+    #carga .logo { position: relative; width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(135deg, #0B63CE, #1D4ED8); }
+    #carga .logo::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: #38BDF8; }
+    #carga .barra { width: 160px; height: 2px; background: #E2E8F0; overflow: hidden; border-radius: 2px; }
+    #carga .barra::after {
+      content: ""; display: block; width: 40%; height: 100%; background: #2563EB;
+      animation: avance 1s ease-in-out infinite;
+    }
+    @keyframes avance { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    @media (prefers-color-scheme: dark) {
+      html, body { background: #0B1120; }
+      #carga { color: #E2E8F0; }
+      #carga .barra { background: #1F2A3C; }
+      #carga .barra::after { background: #3B82F6; }
+      #carga .marca b { color: #3B82F6; }
+    }
+  </style>
+</head>
+<body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <div id="carga">
+    <div class="marca"><div class="logo"></div><span>Lava<b>Express</b></span></div>
+    <div class="barra"></div>
+  </div>
+  <script>
+    // Se quita la pantalla de carga cuando Flutter dibuja el primer cuadro.
+    window.addEventListener('flutter-first-frame', function () {
+      var c = document.getElementById('carga');
+      if (c) { c.style.opacity = '0'; setTimeout(function () { c.remove(); }, 200); }
+    });
+  </script>
+  <script>
+    // Service worker propio (sw.js) para abrir la app sin conexión.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        // Se quita el service worker viejo de Flutter, que ya no sirve para modo sin conexión.
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) {
+            var w = r.active || r.waiting || r.installing;
+            if (w && /flutter_service_worker\.js/.test(w.scriptURL)) r.unregister();
+          });
+        }).catch(function () {}).then(function () {
+          return navigator.serviceWorker.register('sw.js');
+        }).catch(function (e) { console.warn('No se pudo registrar sw.js', e); });
+      });
+    }
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

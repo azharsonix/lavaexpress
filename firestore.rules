@@ -1,0 +1,132 @@
+rules_version = '2';
+
+// Reglas de seguridad de LavaExpress
+//  - El cliente crea sus pedidos SIN peso ni precio y solo puede leerlos.
+//  - Solo el personal (custom claim rol = 'personal', asignado con Admin SDK)
+//    puede registrar el peso, el precio y cambiar el estado.
+//  - Los servicios y tarifas solo se modifican con Admin SDK.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function esPersonal() {
+      return autenticado() && request.auth.token.rol == 'personal';
+    }
+
+    function esDueno(uid) {
+      return autenticado() && request.auth.uid == uid;
+    }
+
+    // Deben coincidir con lib/utils/horarios.dart
+    function horarioValido(h) {
+      return h in ['09:00 - 11:00', '11:00 - 13:00', '13:00 - 15:00', '15:00 - 17:00', '17:00 - 19:00'];
+    }
+
+    // Desde hoy y hasta 14 días adelante (con un día de margen por zona horaria).
+    function fechaValida(f) {
+      return f is timestamp
+        && f >= request.time - duration.value(1, 'd')
+        && f <= request.time + duration.value(15, 'd');
+    }
+
+    // ---------- Cupo por horario ----------
+    function rutaCupo(id) {
+      return /databases/$(database)/documents/cupos/$(id);
+    }
+
+    function cupoMaximo() {
+      return get(/databases/$(database)/documents/configuracion/general).data.cupoPorHorario;
+    }
+
+    function ocupadosAntes(id) {
+      return exists(rutaCupo(id)) ? get(rutaCupo(id)).data.ocupados : 0;
+    }
+
+    // El total debe ser peso × tarifa (redondeado a centavos).
+    function totalCorrecto(d) {
+      return d.total is number
+        && math.abs(d.total - d.pesoKg * d.precioPorKg) < 0.01;
+    }
+
+    match /servicios/{servicioId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if esDueno(uid) || esPersonal();
+      allow create: if esDueno(uid) && request.resource.data.rol == 'cliente';
+      allow update: if esDueno(uid) && request.resource.data.rol == resource.data.rol;
+      allow delete: if false;
+
+      match /direcciones/{direccionId} {
+        allow read, write: if esDueno(uid);
+      }
+    }
+
+    // Solo se modifica con Admin SDK.
+    match /configuracion/{docId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    // Lugares ocupados por bloque. Solo puede aumentar de uno en uno,
+    // sin pasar del cupo, y siempre junto con la creación de un pedido.
+    match /cupos/{cupoId} {
+      allow read: if autenticado();
+      allow create, update: if autenticado()
+        && request.resource.data.ocupados == ocupadosAntes(cupoId) + 1
+        && request.resource.data.ocupados <= cupoMaximo()
+        && cupoId == request.resource.data.dia + '_' + request.resource.data.horario
+        && !exists(/databases/$(database)/documents/pedidos/$(request.resource.data.ultimoPedido))
+        && existsAfter(/databases/$(database)/documents/pedidos/$(request.resource.data.ultimoPedido));
+      allow delete: if false;
+    }
+
+    // Folio consecutivo de pedidos: solo puede aumentar de uno en uno.
+    match /contadores/pedidos {
+      allow read: if autenticado();
+      allow update: if autenticado()
+        && request.resource.data.ultimo == resource.data.ultimo + 1;
+    }
+
+    match /pedidos/{pedidoId} {
+      allow read: if esPersonal()
+        || (autenticado() && resource.data.clienteId == request.auth.uid);
+
+      allow create: if autenticado()
+        && request.resource.data.clienteId == request.auth.uid
+        && request.resource.data.estado == 'solicitud_recibida'
+        && request.resource.data.pesoKg == null
+        && request.resource.data.total == null
+        && fechaValida(request.resource.data.fecha)
+        && horarioValido(request.resource.data.horario)
+        // Ocupa un lugar del horario elegido en la misma transacción.
+        && request.resource.data.dia is string
+        && getAfter(rutaCupo(request.resource.data.dia + '_' + request.resource.data.horario)).data.ocupados
+             == ocupadosAntes(request.resource.data.dia + '_' + request.resource.data.horario) + 1
+        && getAfter(rutaCupo(request.resource.data.dia + '_' + request.resource.data.horario)).data.ultimoPedido
+             == pedidoId
+        && request.resource.data.precioPorKg ==
+             get(/databases/$(database)/documents/servicios/$(request.resource.data.servicioId)).data.precioPorKg
+        && request.resource.data.folio ==
+             getAfter(/databases/$(database)/documents/contadores/pedidos).data.ultimo;
+
+      // El cliente NO puede modificar el pedido (ni el peso). Solo el personal.
+      allow update: if esPersonal()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['estado', 'pesoKg', 'total', 'historial', 'actualizadoEn'])
+        && request.resource.data.pesoKg is number
+        && request.resource.data.pesoKg > 0
+        && request.resource.data.pesoKg <= 500
+        && totalCorrecto(request.resource.data)
+        // Con el peso registrado, la ropa ya fue recibida.
+        && request.resource.data.estado != 'solicitud_recibida';
+
+      allow delete: if false;
+    }
+  }
+}
