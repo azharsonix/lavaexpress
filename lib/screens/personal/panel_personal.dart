@@ -169,11 +169,15 @@ class _BarraLateral extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final email = AuthService.instance.usuario?.email ?? '';
+    final nombre = AuthService.instance.usuario?.displayName ?? '';
+    final partes = nombre.split(' ').where((p) => p.isNotEmpty).toList();
     return BarraLateral(
       subtitulo: 'Panel del personal',
-      nombreUsuario: 'Personal',
+      nombreUsuario: nombre.isEmpty ? 'Personal' : partes.take(2).join(' '),
       detalleUsuario: email,
-      iniciales: email.isEmpty ? 'P' : email[0].toUpperCase(),
+      iniciales: partes.isEmpty
+          ? (email.isEmpty ? 'P' : email[0].toUpperCase())
+          : partes.take(2).map((p) => p[0].toUpperCase()).join(),
       onCerrarSesion: () => AuthService.instance.cerrarSesion(),
       opciones: [
         const GrupoLateral('PEDIDOS'),
