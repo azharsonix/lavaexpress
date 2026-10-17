@@ -15,7 +15,7 @@ void main() {
   });
 
   test('El enlace de seguimiento apunta a la página del servidor', () {
-    expect(urlSeguimiento('abc123').toString(), 'https://lavaexpress-a35d3.web.app/seguimiento/abc123');
+    expect(urlSeguimiento('abc123').toString(), 'https://lavaexpress-seguimiento.vercel.app/seguimiento/abc123');
     expect(urlSeguimiento('abc123').scheme, 'https');
   });
 }
